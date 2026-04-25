@@ -1099,6 +1099,42 @@ footer {
   letter-spacing: 0.04em;
 }
 
+/* FIRMA DEL DESARROLLADOR */
+.dev-signature {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  /* Espacio entre el texto y tu logo */
+  font-family: var(--sans);
+  font-size: 15px;
+  color: var(--gray-mid);
+  letter-spacing: 0.05em;
+}
+
+.dev-signature a {
+  display: flex;
+  align-items: center;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  opacity: 0.6;
+  /* Lo hacemos sutil por defecto */
+}
+
+.dev-signature a:hover {
+  opacity: 1;
+  /* Brilla al pasar el mouse */
+  transform: scale(1.05);
+  /* Crece un poquitito */
+}
+
+.dev-signature img {
+  height: 80px;
+  /* Altura ideal para no opacar el footer, ajústala si tu logo es muy horizontal o vertical */
+  width: auto;
+  object-fit: contain;
+  filter: grayscale(100%) contrast(1.2);
+  /* Fuerza el blanco y negro por si acaso */
+}
+
 /* MODAL */
 .modal-bg {
   position: fixed;
