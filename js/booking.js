@@ -160,26 +160,46 @@ function renderTimes() {
   const grid = document.getElementById("time-grid");
   grid.innerHTML = "";
 
-  // Capturamos el día de hoy para comparar
   const rightNow = new Date();
   const todayStr = `${rightNow.getFullYear()}-${String(rightNow.getMonth() + 1).padStart(2, "0")}-${String(rightNow.getDate()).padStart(2, "0")}`;
-
-  // Verificamos si el usuario seleccionó el día de hoy
   const isTodaySelected = selectedDate && selectedDate.str === todayStr;
-  const currentHour = rightNow.getHours(); // Hora en formato 0-23
+  const currentHour = rightNow.getHours();
 
-  ALL_TIMES.forEach(t => {
+  // Obtener duración del servicio seleccionado
+  const serviceSelect = document.getElementById("f-service");
+  const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
+  const duration = selectedOption && selectedOption.getAttribute("data-duration") ? parseInt(selectedOption.getAttribute("data-duration")) : 60;
+  const slotsNeeded = Math.ceil(duration / 60); // Cuántos bloques de 1 hora necesita
+
+  ALL_TIMES.forEach((t, index) => {
     const slot = document.createElement("div");
-
-    // Obtenemos el número de la hora del slot (ej: "09:00" -> 9)
     const slotHour = parseInt(t.split(":")[0], 10);
-
-    // El slot está ocupado si: 
-    // 1. Viene bloqueado del servidor OR
-    // 2. Es el día de hoy Y la hora del slot ya pasó (o es la hora actual)
     const isPastTimeToday = isTodaySelected && (slotHour <= currentHour);
-    const isBusy = bookedTimes.has(t) || isPastTimeToday;
 
+    // Verificar si los bloques consecutivos necesarios están libres
+    let canBook = true;
+    for (let i = 0; i < slotsNeeded; i++) {
+      const nextSlotIndex = index + i;
+      const nextSlotTime = ALL_TIMES[nextSlotIndex];
+
+      // Si no existe (fuera de horario) o ya está ocupado
+      if (!nextSlotTime || bookedTimes.has(nextSlotTime)) {
+        canBook = false;
+        break;
+      }
+
+      // Validar choque con hora de almuerzo (salto de > 1 hora)
+      if (i > 0) {
+        const prevHour = parseInt(ALL_TIMES[nextSlotIndex - 1].split(":")[0], 10);
+        const currHour = parseInt(nextSlotTime.split(":")[0], 10);
+        if (currHour - prevHour !== 1) {
+          canBook = false; // Choca con un espacio vacío (ej. almuerzo 12 a 14)
+          break;
+        }
+      }
+    }
+
+    const isBusy = !canBook || isPastTimeToday;
     slot.className = "time-slot" + (isBusy ? " busy" : "");
     slot.textContent = t;
 
@@ -260,7 +280,8 @@ async function confirmBook() {
     isFirst,
     notes: cleanNotes,
     date: selectedDate.str,
-    time: selectedTime
+    time: selectedTime,
+    duration: parseInt(duration)
   };
 
   if (APPS_SCRIPT_URL === "REEMPLAZA_CON_TU_URL_DE_APPS_SCRIPT") {
@@ -349,7 +370,6 @@ window.addEventListener("scroll", () => {
 });
 
 // ── FETCH SERVICES JSON ──
-// ── FETCH SERVICES JSON ──
 async function loadServices() {
   try {
     const res = await fetch('data/services.json');
@@ -376,6 +396,15 @@ async function loadServices() {
         priceHTML = `<div class="service-price">$${srv.price} <span>CLP</span></div>`;
       }
 
+      const dur = srv.duration || 60; // 60 por defecto si no lo encuentra
+      const horas = Math.floor(dur / 60);
+      const minutos = dur % 60;
+
+      let timeString = "";
+      if (horas > 0) timeString += `${horas} hr${horas > 1 ? 's' : ''}`;
+      if (minutos > 0) timeString += ` ${minutos} min`;
+
+      // Crear la tarjeta e inyectar el tiempo
       const card = document.createElement('div');
       card.className = 'service-card';
       card.innerHTML = `
@@ -384,6 +413,10 @@ async function loadServices() {
         </svg>
         <h3 class="service-name">${srv.name}</h3>
         <p class="service-desc">${srv.desc}</p>
+        <div class="service-time">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+          Tiempo estimado: ${timeString}
+        </div>
         ${priceHTML}
       `;
       grid.appendChild(card);
@@ -394,18 +427,21 @@ async function loadServices() {
         const optPostura = document.createElement('option');
         optPostura.value = `${srv.name} (Postura) — $${srv.price}`;
         optPostura.textContent = `${srv.name} (Postura) — $${srv.price}`;
+        optPostura.setAttribute('data-duration', srv.duration || 60); // <-- NUEVO
         select.appendChild(optPostura);
 
         // Agrega opción Retoque
         const optRetoque = document.createElement('option');
         optRetoque.value = `${srv.name} (Retoque) — $${srv.priceRetoque}`;
         optRetoque.textContent = `${srv.name} (Retoque) — $${srv.priceRetoque}`;
+        optRetoque.setAttribute('data-duration', 60); // <-- NUEVO
         select.appendChild(optRetoque);
       } else {
         // Agrega la opción normal única
         const option = document.createElement('option');
         option.value = `${srv.name} — $${srv.price}`;
         option.textContent = `${srv.name} — $${srv.price}`;
+        option.setAttribute('data-duration', srv.duration || 60); // <-- NUEVO
         select.appendChild(option);
       }
     });
@@ -417,3 +453,13 @@ async function loadServices() {
 // INIT
 loadAvailability(currentYear, currentMonth);
 loadServices();
+
+// Escuchar si cambian de servicio para recalcular las horas
+const serviceSelectElem = document.getElementById("f-service");
+if (serviceSelectElem) {
+  serviceSelectElem.addEventListener("change", () => {
+    selectedTime = null; // Resetear la hora seleccionada
+    updateSummary();
+    if (selectedDate) renderTimes(); // Recalcular las horas disponibles
+  });
+}

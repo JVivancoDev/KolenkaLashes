@@ -370,7 +370,20 @@ section {
   font-size: 12.5px;
   color: var(--gray-dark);
   line-height: 1.7;
+  margin-bottom: 0.75rem;
+  /* Reducido para dar espacio al tiempo */
+  flex-grow: 1;
+}
+
+.service-time {
+  font-family: var(--sans);
+  font-size: 11px;
+  color: var(--gray-mid);
   margin-bottom: 1.5rem;
+  /* Este margen empuja el precio hacia abajo */
+  font-style: italic;
+  display: flex;
+  align-items: center;
 }
 
 .service-price {
