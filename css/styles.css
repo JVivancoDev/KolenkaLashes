@@ -41,29 +41,34 @@ header {
   background: rgba(243, 240, 235, 0.97);
   backdrop-filter: blur(8px);
   border-bottom: 0.5px solid var(--gray-light);
-  padding: 1rem 2rem;
+  padding: 1rem 4rem;
+  /* Aumentamos el padding lateral para que respire mejor */
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  /* Cambiado a horizontal */
   align-items: center;
-  gap: 0.6rem;
+  justify-content: space-between;
+  /* Logo a la izquierda, menú a la derecha */
   transition: border-color 0.3s;
 }
 
 .logo-wrap img {
-  height: 68px;
+  height: 85px;
+  /* Logo más grande en PC (antes 68px) */
   object-fit: contain;
   mix-blend-mode: multiply;
 }
 
 nav {
   display: flex;
-  gap: 2.5rem;
+  gap: 3rem;
   align-items: center;
 }
 
 nav a {
   font-family: var(--sans);
-  font-size: 10.5px;
+  font-size: 12px;
+  /* Letra un poco más grande en PC (antes 10.5px) */
   font-weight: 400;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -1229,10 +1234,28 @@ footer {
 }
 
 @media (max-width: 768px) {
+
+  /* Devolver el header al diseño vertical apilado para celulares */
+  header {
+    flex-direction: column;
+    padding: 1rem;
+    gap: 0.8rem;
+  }
+
+  .logo-wrap img {
+    height: 68px;
+    /* Volvemos al tamaño original del logo */
+  }
+
   nav {
     gap: 1rem;
     flex-wrap: wrap;
     justify-content: center;
+  }
+
+  nav a {
+    font-size: 10.5px;
+    /* Volvemos al tamaño original de la letra */
   }
 
   .agenda-layout {
