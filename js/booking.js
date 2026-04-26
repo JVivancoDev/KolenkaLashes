@@ -2,7 +2,7 @@
 // CONFIGURACIÓN — reemplaza esta URL con la de
 // tu Google Apps Script una vez desplegado
 // ─────────────────────────────────────────────
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxVMtgIUKI8iglnTfi29YPA5kcJ1F-4Aj9G4Du93wSbXVMm-4vr-i2M7FP0H3wTPiYMAw/exec";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxY2EBjVb2jbCRsirr63J9ChP8p7onIYBDNxYymP4KP8JS4FAwkNDqhuQbWHuEjKBAUng/exec";
 
 // ── ACCORDION ──
 function toggleAcc(btn) {
@@ -235,10 +235,13 @@ function updateSummary() {
 }
 
 // ── CONFIRM BOOKING ──
+// ── CONFIRM BOOKING ──
 async function confirmBook() {
   const name = document.getElementById("f-name").value;
   const phone = document.getElementById("f-phone").value;
-  const service = document.getElementById("f-service").value;
+  const email = document.getElementById("f-email").value;
+  const serviceSelect = document.getElementById("f-service");
+  const service = serviceSelect.value;
   const isFirst = document.getElementById("f-first").value;
   const notes = document.getElementById("f-notes").value;
   const btn = document.getElementById("btn-confirm");
@@ -246,36 +249,29 @@ async function confirmBook() {
   // Limpieza básica
   const cleanName = name.replace(/[<>]/g, "").trim();
   const cleanPhone = phone.replace(/[<>]/g, "").trim();
+  const cleanEmail = email.replace(/[<>]/g, "").trim();
   const cleanNotes = notes.replace(/[<>]/g, "").trim();
 
   // Validaciones unificadas
   const phoneRegex = /^\+569\d{8}$/;
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-  if (!cleanName) {
-    setStatus("Por favor ingresa tu nombre.", "err");
-    return;
-  }
-  if (!cleanPhone || !phoneRegex.test(cleanPhone)) {
-    setStatus("Teléfono inválido. Usa formato +569XXXXXXXX", "err");
-    return;
-  }
-  if (!service) {
-    setStatus("Por favor selecciona un servicio.", "err");
-    return;
-  }
-  if (!selectedDate) {
-    setStatus("Por favor selecciona una fecha.", "err");
-    return;
-  }
-  if (!selectedTime) {
-    setStatus("Por favor selecciona un horario.", "err");
-    return;
-  }
+  if (!cleanName) { setStatus("Por favor ingresa tu nombre.", "err"); return; }
+  if (!cleanPhone || !phoneRegex.test(cleanPhone)) { setStatus("Teléfono inválido. Usa formato +569XXXXXXXX", "err"); return; }
+  if (!cleanEmail || !emailRegex.test(cleanEmail)) { setStatus("Por favor ingresa un correo válido.", "err"); return; }
+  if (!service) { setStatus("Por favor selecciona un servicio.", "err"); return; }
+  if (!selectedDate) { setStatus("Por favor selecciona una fecha.", "err"); return; }
+  if (!selectedTime) { setStatus("Por favor selecciona un horario.", "err"); return; }
+
+  // Obtener duración de la opción seleccionada
+  const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
+  const duration = selectedOption.getAttribute("data-duration") || 60;
 
   const payload = {
     action: "book",
     name: cleanName,
     phone: cleanPhone,
+    email: cleanEmail,
     service,
     isFirst,
     notes: cleanNotes,
@@ -286,7 +282,7 @@ async function confirmBook() {
 
   if (APPS_SCRIPT_URL === "REEMPLAZA_CON_TU_URL_DE_APPS_SCRIPT") {
     // MODO DEMO
-    showModal(name, service.split(" —")[0], selectedDate, selectedTime, phone);
+    showModal(cleanName, service.split(" —")[0], selectedDate, selectedTime, cleanPhone);
     return;
   }
 
@@ -313,21 +309,22 @@ async function confirmBook() {
       document.querySelectorAll(".time-slot")
         .forEach(el => el.classList.remove("selected"));
 
-      // 🔄 4. Recargar horarios (esto actualiza los slots)
+      // 🔄 4. Recargar horarios
       await loadTimesForDate(selectedDate.str);
 
-      // 📅 5. Re-render calendario (esto bloquea el día si queda full)
+      // 📅 5. Re-render calendario
       renderCalendar();
 
-      // 💬 6. Mostrar modal (usa bookedTime, NO selectedTime)
-      showModal(cleanName, service, selectedDate, bookedTime, cleanPhone);
+      // 💬 6. Mostrar modal
+      showModal(cleanName, service.split(" —")[0], selectedDate, bookedTime, cleanPhone);
 
       // 🧽 7. Limpiar formulario
       document.getElementById("f-name").value = "";
       document.getElementById("f-phone").value = "";
+      document.getElementById("f-email").value = "";
       document.getElementById("f-notes").value = "";
 
-      // 🧠 8. Reset estado (opcional pero recomendado)
+      // 🧠 8. Reset estado
       selectedDate = null;
       updateSummary();
 
